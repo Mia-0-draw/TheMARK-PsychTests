@@ -901,8 +901,9 @@
 
 <div id="app">
     <!-- 用來解鎖音效權限的半透明啟動塗層 -->
-    <div id="splash-screen" onclick="startExperience()">
-        <div class="touch-text">touch to start</div>
+    <div id="splash-screen">
+        <div id="loading-text" class="touch-text" style="color: #ccc; font-size: 14px;">資源載入中... 0%</div>
+        <div id="start-text" class="touch-text" style="display:none;">Touch to start</div>
     </div>
 
     <!-- 前導互動視訊介面 -->
@@ -1010,6 +1011,27 @@
     </div>
 
 <script>
+    // ============================================
+    // ========== 無縫預載系統 (Preloader) ==========
+    // ============================================
+    const videoAssets = [
+        './vids/vid2.mp4',
+        './vids/vid3.mp4',
+        './vids/vid4.mp4'
+    ];
+    
+    // 這裡包含了所有介面、對話貼圖，以及最後的 9 張結果圖與展覽資訊
+    const imageAssets = [
+        './pics/bg1.png', './pics/v101.png', './pics/v102.png', './pics/v103.png',
+        './pics/call.png', './pics/topbar1.png', './pics/yesbtn1.png', './pics/yesbtn2.png',
+        './pics/5.png', './pics/6.png',
+        './pics/a1.png', './pics/a2.png', './pics/a3.png', './pics/a4.png', 
+        './pics/a5.png', './pics/a6.png', './pics/a7.png', './pics/a8.png', 
+        './pics/a9.png', './pics/info1.png'
+    ];
+    
+    const preloadedVids = {};
+
     let scores = {
         "白雪": 0, "傑克": 0, "愛麗絲": 0, "航海家": 0,
         "鋼琴家": 0, "壁畫": 0, "科學家": 0, "問號頭人": 0
@@ -1022,7 +1044,6 @@
     let flag_Q15Reported = false;
     let flag_GlitchSolved = false;
     let flag_TutorialStickerUsed = false;
-    // ----------------------------------------
 
     let currentMusicIndex = 0; 
     let musicSwitchCount = 0;  
@@ -1036,6 +1057,67 @@
     let isGlitchDone = false;
     let closeBtnClickCount = 0;
     let glitchTimerInterval = null;
+
+    // --- 新增預載邏輯函式 ---
+    async function preloadAssets() {
+        let loadedCount = 0;
+        const totalAssets = videoAssets.length + imageAssets.length;
+        const loadingText = document.getElementById('loading-text');
+
+        function updateProgress() {
+            loadedCount++;
+            const percent = Math.floor((loadedCount / totalAssets) * 100);
+            if(loadingText) loadingText.innerText = `資源載入中... ${percent}%`;
+            
+            if (loadedCount === totalAssets) {
+                if(loadingText) loadingText.style.display = 'none';
+                const startText = document.getElementById('start-text');
+                if(startText) startText.style.display = 'block';
+                
+                // 載入完成，解鎖點擊事件
+                document.getElementById('splash-screen').onclick = startExperience;
+            }
+        }
+
+        imageAssets.forEach(src => {
+            const img = new Image();
+            img.onload = updateProgress;
+            img.onerror = updateProgress; 
+            img.src = src;
+        });
+
+        for (const src of videoAssets) {
+            try {
+                const response = await fetch(src);
+                const blob = await response.blob();
+                preloadedVids[src] = URL.createObjectURL(blob);
+            } catch (e) {
+                console.warn("影片載入失敗，將使用原始路徑回退:", src);
+                preloadedVids[src] = src; 
+            }
+            updateProgress();
+        }
+    }
+
+    window.onload = function() {
+        // 網頁一開就開始跑資料
+        preloadAssets(); 
+
+        const introVideo = document.getElementById('intro-video');
+        introVideo.style.display = 'none'; 
+        document.getElementById('intro-wait-ui').style.display = 'flex';
+
+        const textDiv = document.getElementById("calling-text");
+        const fullText = "calling...";
+        let charIndex = 0;
+        callingInterval = setInterval(() => {
+            textDiv.innerText = fullText.slice(0, charIndex);
+            charIndex++;
+            if (charIndex > fullText.length + 4) { 
+                charIndex = 0;
+            }
+        }, 200);
+    };
 
     const questionsData =[
         {
@@ -1319,15 +1401,14 @@
     function playIntroVideo(src) {
         const introVideo = document.getElementById('intro-video');
         
-        // 1. 先暫停並換源
-        introVideo.pause();
-        introVideo.src = src;
-        introVideo.load(); // 載入新資源
+        // 使用預載好的 blob 網址，如果沒有就用原本的路徑
+        introVideo.src = preloadedVids[src] || src; 
         
-        // 2. 監聽當資料足以播放時才開始，減少黑頻感
+        // 載入並在準備好時播放，減少黑頻感
+        introVideo.load();
         introVideo.oncanplaythrough = function() {
             introVideo.play().catch(e => console.log(e));
-            introVideo.oncanplaythrough = null; // 播放後移除監聽，避免重複觸發
+            introVideo.oncanplaythrough = null;
         };
     }
 
