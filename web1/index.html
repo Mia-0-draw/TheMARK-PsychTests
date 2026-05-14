@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>專屬標籤心理測驗</title>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="mobile-web-app-capable" content="yes">
 
     <style>
         /* CSS Reset 與基本設定 */
@@ -15,10 +18,14 @@
         }
 
         body {
-            background-color: #3A3A3A; /* 背景底色改為深灰 */
+            background-color: #3A3A3A; 
             display: flex;
             justify-content: center;
-            height: 100vh;
+            
+            height: 100vh; /* 備用 */
+            height: 100dvh; /* 現代瀏覽器支援 */
+            height: calc(var(--vh, 1vh) * 100); /* JS 強制校正，最高優先級 */
+            
             overflow: hidden;
         }
 
@@ -1005,7 +1012,16 @@
     </div>
 
 <script>
+    // ========== 手機全螢幕高度精準校正 ==========
     // ============================================
+    function setMobileHeight() {
+        // 抓取當下真正的可視高度，並轉換成 CSS 變數 --vh
+        let vh = window.innerHeight * 0.01;
+        document.documentElement.style.setProperty('--vh', `${vh}px`);
+    }
+    setMobileHeight(); // 初始化執行
+    window.addEventListener('resize', setMobileHeight); // 旋轉或視窗改變時重新計算
+
     // ========== 無縫預載系統 (Preloader) ==========
     // ============================================
     const videoAssets = [
