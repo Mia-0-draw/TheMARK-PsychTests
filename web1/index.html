@@ -17,42 +17,42 @@
             font-family: 'Helvetica Neue', Helvetica, Arial, 'PingFang TC', '微軟正黑體', sans-serif;
         }
 
-        body {
-            background-color: #3A3A3A; 
-            display: flex;
-            justify-content: center;
-            /* 移除原本鎖死 100vh 的設定，讓 body 可以被內容撐開 */
-            min-height: 100vh;
-            /* 讓舊版手機也能盡量撐滿 */
-            min-height: -webkit-fill-available;
-            /* 允許網頁出現原生滾動條 */
-            overflow-y: auto; 
-            overflow-x: hidden;
-        }
+        html, body {
+    /* 必須讓 html 也能滾動 */
+    height: auto; 
+    /* 核心：稍微超出 100%，誘發瀏覽器隱藏 Bar 的機制 */
+    min-height: 101vh; 
+    background-color: #3A3A3A;
+    margin: 0;
+    padding: 0;
+    /* 允許垂直滾動 */
+    overflow-y: auto; 
+    overflow-x: hidden;
+    /* 讓滾動更順滑 */
+    -webkit-overflow-scrolling: touch; 
+}
+        
+        
 
         /* 模擬手機畫面的容器 */
         #app {
-            width: 100%;
-            max-width: 450px; 
-            
-            /* 💡 核心修改：設定固定的最低高度，確保內容不被壓縮 */
-            /* 這裡設定 800px 是一個常見的舒適手機高度 (大約 9:16 的比例) */
-            /* 如果你覺得內容還是被擠壓，可以把這數字改大 (e.g., 850px) */
-            min-height: 800px;
-            
-            /* 讓 #app 盡量長高去貼齊螢幕，但絕對不能低於 min-height */
-            height: 100vh;
-            height: -webkit-fill-available;
-
-            background-color: #3A3A3A; 
-            display: flex;
-            flex-direction: column;
-            position: relative;
-            box-shadow: 0 0 20px rgba(0,0,0,0.5);
-            /* 確保 #app 內部的東西不會溢出 */
-            overflow: hidden; 
-        }
-
+    width: 100%;
+    max-width: 450px;
+    /* 保持你想要的比例高度 */
+    min-height: 800px; 
+    
+    /* 不要用 100vh，改用 100% 讓它跟隨 body */
+    height: 100%; 
+    
+    background-color: #3A3A3A;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    margin: 0 auto; /* 置中 */
+    
+    /* ⚠️ 重要：移除 overflow: hidden，或者確保它不會攔截全頁滾動 */
+    overflow: visible; 
+}
       /* 頂部導覽列改為圖片滿版排列 */
         header {
             background-color: transparent;
