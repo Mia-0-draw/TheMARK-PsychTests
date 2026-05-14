@@ -1354,21 +1354,16 @@ body {
     function startExperience() {
         document.getElementById('splash-screen').style.display = 'none';
         window.scrollTo(0, 1);
+        // 電話聲本來就要在這裡播，所以保留 play()
         const ringAudio = document.getElementById('ring-audio');
         if(ringAudio) {
             ringAudio.play().catch(e => console.log('ring播放失敗:', e));
         }
         
+        // 🎵 BGM 修正：只要「預先載入 (load)」，絕對不要呼叫 play()！
         if(bgmAudio) {
             bgmAudio.src = musicList[0]; 
-            bgmAudio.load();
-            bgmAudio.volume = 0; // 先設為靜音以免嚇到玩家
-            
-            bgmAudio.play().then(() => {
-                bgmAudio.pause(); // 播成功後立刻暫停，完成解鎖
-                bgmAudio.volume = 1; // 恢復正常音量
-                bgmAudio.currentTime = 0; // 音樂進度歸零
-            }).catch(e => console.log('bgm預解鎖失敗:', e));
+            bgmAudio.load(); // 讓手機先把第一首歌下載好準備著
         }
 
         preloadResultImagesInBackground();
