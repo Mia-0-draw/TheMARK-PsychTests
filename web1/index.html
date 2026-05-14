@@ -32,6 +32,8 @@
         #app {
             width: calc(100% - 40px); /* ⚠️調整左右黑框：數字越大框越粗 */
             max-width: 420px; 
+            height: 100%;       /* 基礎保底 */
+            min-height: 100vh;
             height: 100dvh; /* 現代瀏覽器專用 */
             height: calc(var(--vh, 1vh) * 100); /* 舊手機備用 */
             background-color: #3A3A3A;
