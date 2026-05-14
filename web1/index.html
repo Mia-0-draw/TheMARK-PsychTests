@@ -1237,18 +1237,7 @@
                 "來吧！按下按鍵，讓我們開始吧？"
             ], () => {
                 showIntroButton(2); 
-                
-                // ===== 動態切換 Topbar =====
-                const topBar = document.getElementById('intro-topbar');
-                topBar.src = './pics/topbar2.gif';
-                
-                setTimeout(() => {
-                    // 確保還在前導畫面才切換
-                    if (document.getElementById('intro-screen').style.display !== 'none') {
-                        topBar.src = './pics/topbar3.png';
-                    }
-                }, 5000); 
-                // ===========================
+                // 那段亂加的 topbar 切換程式碼已經幫你拔掉了！
             });
         }
     }
