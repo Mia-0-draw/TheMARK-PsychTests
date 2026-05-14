@@ -336,6 +336,8 @@
     }
     setMobileHeight(); // 初始化執行
     window.addEventListener('resize', setMobileHeight); // 旋轉或視窗改變時重新計算
+    window.addEventListener('load', setMobileHeight);
+    setTimeout(setMobileHeight, 500);
 
     // ========== 無縫預載系統 (Preloader) ==========
     // ============================================
@@ -361,6 +363,8 @@
     
     const preloadedVids = {};
     let isAppReady = false; 
+
+    const memorySafePreload = [];
 
     // --- 背景默默載入解答圖 ---
     function preloadResultImagesInBackground() {
