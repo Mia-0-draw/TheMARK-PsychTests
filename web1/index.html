@@ -1006,7 +1006,6 @@
 
 <script>
     // ============================================
-// ============================================
     // ========== 無縫預載系統 (Preloader) ==========
     // ============================================
     const videoAssets = [
@@ -1015,19 +1014,35 @@
         './vids/vid4.mp4'
     ];
     
+    // 初始只載入「馬上就要用到」的圖片
     const imageAssets = [
         './pics/bg1.png', './pics/v101.png', './pics/v102.png', './pics/v103.png',
         './pics/call.png', './pics/topbar1.png', './pics/yesbtn1.png', './pics/yesbtn2.png',
-        './pics/5.png', './pics/6.png',
+        './pics/5.png', './pics/6.png', './pics/info1.png'
+    ];
+    
+    // 建立另一個陣列，專門放這 9 張超大結果圖
+    const resultImageAssets = [
         './pics/a1.png', './pics/a2.png', './pics/a3.png', './pics/a4.png', 
         './pics/a5.png', './pics/a6.png', './pics/a7.png', './pics/a8.png', 
-        './pics/a9.png', './pics/info1.png'
+        './pics/a9.png'
     ];
     
     const preloadedVids = {};
-    let isAppReady = false; // 追蹤是否已經解鎖畫面
+    let isAppReady = false; 
 
-    // 💡 改用 DOMContentLoaded，網頁一打開就立刻執行，絕不拖延
+    // --- 背景默默載入解答圖 ---
+    function preloadResultImagesInBackground() {
+        setTimeout(() => {
+            resultImageAssets.forEach(src => {
+                const img = new Image();
+                img.src = src;
+            });
+            console.log("背景預載解答大圖完成");
+        }, 3000); 
+    }
+
+    // 網頁一打開就立刻執行
     document.addEventListener("DOMContentLoaded", function() {
         document.getElementById('splash-screen').onclick = null; 
         
@@ -1046,12 +1061,12 @@
 
         preloadAssets();
 
-        // 🛡️【無敵保底機制】不管載入有沒有出錯，最長等 6 秒就強制解鎖讓玩家進入！
+        // 🛡️ 無敵保底機制
         setTimeout(forceStart, 6000);
     });
 
     function forceStart() {
-        if (isAppReady) return; // 已經解鎖過了就跳過
+        if (isAppReady) return; 
         isAppReady = true;
         
         const loadingText = document.getElementById('loading-text');
@@ -1060,7 +1075,6 @@
         const startText = document.getElementById('start-text');
         if(startText) startText.style.display = 'block';
         
-        // 載入完成，解鎖點擊事件並顯示通話鈕
         document.getElementById('splash-screen').onclick = startExperience;
         document.getElementById('call-btn').style.display = 'flex';
     }
@@ -1071,7 +1085,7 @@
         const loadingText = document.getElementById('loading-text');
 
         function updateProgress() {
-            if (isAppReady) return; // 如果已經保底解鎖了，就不再更新畫面
+            if (isAppReady) return; 
             
             loadedCount++;
             const percent = Math.floor((loadedCount / totalAssets) * 100);
@@ -1085,7 +1099,7 @@
         imageAssets.forEach(src => {
             const img = new Image();
             img.onload = updateProgress;
-            img.onerror = updateProgress; // 就算圖片不小心遺失報錯，也算進度，不准卡死
+            img.onerror = updateProgress; 
             img.src = src;
         });
 
@@ -1095,13 +1109,45 @@
                 const blob = await response.blob();
                 preloadedVids[src] = URL.createObjectURL(blob);
             } catch (e) {
-                console.warn("影片預載受阻 (可能是本機測試)，改用即時載入:", src);
-                preloadedVids[src] = src; // 抓不到就用預設的，讓影片播的時候再去抓
+                console.warn("影片預載受阻，改用即時載入:", src);
+                preloadedVids[src] = src; 
             }
             updateProgress();
         }
     }
-    
+
+    // ============================================
+    // ========== 測驗核心變數與資料設定 ===========
+    // ============================================
+    let scores = {
+        "白雪": 0, "傑克": 0, "愛麗絲": 0, "航海家": 0,
+        "鋼琴家": 0, "壁畫": 0, "科學家": 0, "問號頭人": 0
+    };
+
+    let flag_IntroLateHangup = false;
+    let flag_MusicCycled = false;
+    let flag_CardMaxDrawn = false;
+    let flag_Q15Reported = false;
+    let flag_GlitchSolved = false;
+    let flag_TutorialStickerUsed = false;
+
+    let currentMusicIndex = 0; 
+    let musicSwitchCount = 0;  
+    const musicList =['./music/01.mp3', './music/02.mp3', './music/03.mp3']; 
+
+    let isCardEventDone = false; 
+    let drawCount = 0; 
+    let cardPool =[]; 
+
+    let isGlitchActive = false;
+    let isGlitchDone = false;
+    let closeBtnClickCount = 0;
+    let glitchTimerInterval = null;
+    let currentQuestionIndex = 0;
+    let isStickerMode = false; 
+    let introStep = 0; 
+    let typewriterTimeouts =[];
+
     const questionsData =[
         {
             q: "Q1.我們重視每位受試者的體驗環境……需要為你播放一點背景音樂嗎？",
@@ -1257,9 +1303,6 @@
 
     const stickersList =["./pics/1.png", "./pics/2.png", "./pics/3.png", "./pics/4.png"];
 
-    let currentQuestionIndex = 0;
-    let isStickerMode = false; 
-
     const chatContainer = document.getElementById("chat-container");
     const actionArea = document.getElementById("action-area");
     const toolbar = document.getElementById("toolbar");
@@ -1272,66 +1315,34 @@
     // ============================================
     // ========== 前導互動視訊系統 (Intro) =========
     // ============================================
-    let introStep = 0; 
-    let typewriterTimeouts =[];
-    let callingInterval = null; 
-
-    // --- 新增預載邏輯 ---
-    function preloadAssets() {
-        // 預載圖片
-        const imagesToPreload = [
-            './pics/5.png', './pics/6.png', './pics/v101.png', 
-            './pics/v102.png', './pics/v103.png', './pics/bg1.png',
-            './pics/yesbtn1.png', './pics/yesbtn2.png'
-        ];
-        imagesToPreload.forEach(src => {
-            const img = new Image();
-            img.src = src;
-        });
-
-        // 預載影片 (透過建立隱藏的 Video 標籤)
-        const videosToPreload = ['./vids/vid2.mp4', './vids/vid3.mp4', './vids/vid4.mp4'];
-        videosToPreload.forEach(src => {
-            const v = document.createElement('video');
-            v.src = src;
-            v.preload = 'auto';
-            v.load(); // 強制瀏覽器開始下載
-        });
-    }
-
-    window.onload = function() {
-        preloadAssets(); // 網頁一開就開始跑資料
-
-        const introVideo = document.getElementById('intro-video');
-        introVideo.style.display = 'none'; 
-        document.getElementById('intro-wait-ui').style.display = 'flex';
-
-        const textDiv = document.getElementById("calling-text");
-        const fullText = "calling...";
-        let charIndex = 0;
-        callingInterval = setInterval(() => {
-            textDiv.innerText = fullText.slice(0, charIndex);
-            charIndex++;
-            if (charIndex > fullText.length + 4) { 
-                charIndex = 0;
-            }
-        }, 200);
-    };
 
     function startExperience() {
         document.getElementById('splash-screen').style.display = 'none';
         
         const ringAudio = document.getElementById('ring-audio');
         if(ringAudio) {
-            ringAudio.play().catch(e => console.log('音效播放失敗:', e));
+            ringAudio.play().catch(e => console.log('ring播放失敗:', e));
         }
+        
+        if(bgmAudio) {
+            bgmAudio.src = musicList[0]; 
+            bgmAudio.load();
+            bgmAudio.volume = 0; // 先設為靜音以免嚇到玩家
+            
+            bgmAudio.play().then(() => {
+                bgmAudio.pause(); // 播成功後立刻暫停，完成解鎖
+                bgmAudio.volume = 1; // 恢復正常音量
+                bgmAudio.currentTime = 0; // 音樂進度歸零
+            }).catch(e => console.log('bgm預解鎖失敗:', e));
+        }
+
+        preloadResultImagesInBackground();
     }
 
     function handleCallBtn() {
         const btn = document.getElementById('call-btn');
         if (introStep === 0) {
             introStep = 1;
-            
             if(callingInterval) clearInterval(callingInterval);
             
             btn.className = 'call-btn-red';
@@ -1383,11 +1394,8 @@
 
     function playIntroVideo(src) {
         const introVideo = document.getElementById('intro-video');
-        
-        // 使用預載好的 blob 網址，如果沒有就用原本的路徑
         introVideo.src = preloadedVids[src] || src; 
         
-        // 載入並在準備好時播放，減少黑頻感
         introVideo.load();
         introVideo.oncanplaythrough = function() {
             introVideo.play().catch(e => console.log(e));
@@ -1418,7 +1426,6 @@
 
     function showIntroButton(typeIndex) {
         const btn = document.getElementById('intro-action-btn');
-        
         if (typeIndex === 1) {
             btn.src = './pics/yesbtn1.png';
             btn.onclick = nextIntroStep;
@@ -1426,7 +1433,6 @@
             btn.src = './pics/yesbtn2.png';
             btn.onclick = () => { enterChat('normal'); };
         }
-        
         btn.parentElement.style.opacity = 1; 
         btn.parentElement.style.pointerEvents = "auto";
     }
@@ -1435,8 +1441,6 @@
         const options = document.getElementById('intro-options');
         options.style.opacity = 0; options.style.pointerEvents = "none";
     }
-
-    // ============================================
 
     function enterChat(hangupType) {
         document.getElementById('intro-screen').style.display = 'none';
@@ -1454,25 +1458,17 @@
         }
 
         setTimeout(() => { addMessage("歡迎來到問號主持人的諮商室！", "system"); }, msgDelay);
-        msgDelay += 800; // 縮短一點間隔，緊接著發圖片
-        
-        // 新增 5.png 貼圖
+        msgDelay += 800; 
         setTimeout(() => { addMessage("./pics/5.png", "system", true); }, msgDelay);
         msgDelay += 1500;
-
         setTimeout(() => { addMessage("接下來會有 15 個問題請你回答。", "system"); }, msgDelay);
         msgDelay += 1500; 
-        
         setTimeout(() => { addMessage("測驗途中，如果發現了什麼異處......你會提出疑問，還是...？呵呵呵", "system"); }, msgDelay);
-        msgDelay += 800; // 縮短一點間隔，緊接著發圖片
-        
-        // 新增 6.png 貼圖
+        msgDelay += 800; 
         setTimeout(() => { addMessage("./pics/6.png", "system", true); }, msgDelay);
         msgDelay += 2000; 
-
         setTimeout(() => { addMessage("那麼！讓我們開始第一個問題！", "system"); }, msgDelay);
         msgDelay += 1200;
-
         setTimeout(() => { renderQuestion(); }, msgDelay);
     }
 
@@ -1639,7 +1635,6 @@
             return;
         } 
         
-        // --- 處理選擇「可是我就喜歡你傳的那兩張?」 ---
         if (option.action === "sticker_exclusive") {
             setTimeout(() => {
                 addMessage("哎呀可惜，這是我問號主持人的專屬貼圖TT", "system");
@@ -1647,7 +1642,6 @@
             }, 500);
             return;
         }
-        // --------------------------------------------------------
 
         if (option.action === "play_music") {
             bgmAudio.src = musicList[currentMusicIndex]; bgmAudio.volume = 1;
@@ -1664,13 +1658,11 @@
             bgmAudio.src = musicList[currentMusicIndex];
             bgmAudio.play().catch(e => console.log(e));
             
-            // 建立輪替的台詞陣列
             const musicResponses = [
                 "換了一首曲子。現在這首，是否更符合你的需求？",
                 "那麼，這首呢？有沒有讓你更自在一些?",
                 "現在這首，聽起來感覺如何呢？"
             ];
-            // 透過切換次數取餘數，讓這三句話不斷循環
             const responseText = musicResponses[(musicSwitchCount - 1) % musicResponses.length];
 
             setTimeout(() => {
@@ -1879,10 +1871,6 @@
         setTimeout(() => { renderQuestion(); }, 500);
     }
 
-    // ============================================
-    // ========== 全新結局信任度與展示系統 ===========
-    // ============================================
-
     function showResult() {
         clearActions(); 
         toolbar.style.display = "none"; 
@@ -1940,7 +1928,6 @@
             }
         }
 
-        // --- 隱藏成就：小問號 真結局判定 ---
         let condition7 = (scores["問號頭人"] <= 2) && (scores["白雪"] <= 4);
 
         if (flag_IntroLateHangup && 
@@ -1953,9 +1940,7 @@
             
             resultCharacter = "小問號";
         }
-        // ----------------------------------
 
-        // 對應圖片表
         const charMap = {
             "白雪": "a1.png", 
             "傑克": "a2.png", 
@@ -1968,7 +1953,6 @@
             "小問號": "a9.png"
         };
         const imgSrc = `./pics/${charMap[resultCharacter]}`;
-
 
         setTimeout(() => {
             addMessage("解答已經準備好了，請點擊下方文件查看：", "system");
@@ -2000,17 +1984,14 @@
     }
 
     function showResultPage(imgSrc) {
-        // 隱藏聊天室主要區塊
         document.getElementById('chat-container').style.display = 'none';
         document.getElementById('bottom-area').style.display = 'none';
         document.querySelector('header').style.display = 'none';
         
-        // 顯示結果全螢幕頁面
         const resultPage = document.getElementById('result-page');
         document.getElementById('result-image').src = imgSrc;
         resultPage.style.display = 'flex';
     }
-
 </script>
 </body>
 </html>
