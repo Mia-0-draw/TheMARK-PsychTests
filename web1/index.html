@@ -1211,7 +1211,32 @@
     let typewriterTimeouts =[];
     let callingInterval = null; 
 
+    // --- 新增預載邏輯 ---
+    function preloadAssets() {
+        // 預載圖片
+        const imagesToPreload = [
+            './pics/5.png', './pics/6.png', './pics/v101.png', 
+            './pics/v102.png', './pics/v103.png', './pics/bg1.png',
+            './pics/yesbtn1.png', './pics/yesbtn2.png'
+        ];
+        imagesToPreload.forEach(src => {
+            const img = new Image();
+            img.src = src;
+        });
+
+        // 預載影片 (透過建立隱藏的 Video 標籤)
+        const videosToPreload = ['./vids/vid2.mp4', './vids/vid3.mp4', './vids/vid4.mp4'];
+        videosToPreload.forEach(src => {
+            const v = document.createElement('video');
+            v.src = src;
+            v.preload = 'auto';
+            v.load(); // 強制瀏覽器開始下載
+        });
+    }
+
     window.onload = function() {
+        preloadAssets(); // 網頁一開就開始跑資料
+
         const introVideo = document.getElementById('intro-video');
         introVideo.style.display = 'none'; 
         document.getElementById('intro-wait-ui').style.display = 'flex';
@@ -1293,8 +1318,17 @@
 
     function playIntroVideo(src) {
         const introVideo = document.getElementById('intro-video');
-        introVideo.src = src; introVideo.loop = false; introVideo.muted = false; 
-        introVideo.play().catch(e=>console.log(e));
+        
+        // 1. 先暫停並換源
+        introVideo.pause();
+        introVideo.src = src;
+        introVideo.load(); // 載入新資源
+        
+        // 2. 監聽當資料足以播放時才開始，減少黑頻感
+        introVideo.oncanplaythrough = function() {
+            introVideo.play().catch(e => console.log(e));
+            introVideo.oncanplaythrough = null; // 播放後移除監聽，避免重複觸發
+        };
     }
 
     function runTypewriter(lines, onComplete) {
