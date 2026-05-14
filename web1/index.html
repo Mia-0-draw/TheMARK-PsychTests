@@ -1006,6 +1006,7 @@
 
 <script>
     // ============================================
+// ============================================
     // ========== 無縫預載系統 (Preloader) ==========
     // ============================================
     const videoAssets = [
@@ -1014,7 +1015,6 @@
         './vids/vid4.mp4'
     ];
     
-    // 這裡包含了所有介面、對話貼圖，以及最後的 9 張結果圖與展覽資訊
     const imageAssets = [
         './pics/bg1.png', './pics/v101.png', './pics/v102.png', './pics/v103.png',
         './pics/call.png', './pics/topbar1.png', './pics/yesbtn1.png', './pics/yesbtn2.png',
@@ -1025,78 +1025,12 @@
     ];
     
     const preloadedVids = {};
+    let isAppReady = false; // 追蹤是否已經解鎖畫面
 
-    let scores = {
-        "白雪": 0, "傑克": 0, "愛麗絲": 0, "航海家": 0,
-        "鋼琴家": 0, "壁畫": 0, "科學家": 0, "問號頭人": 0
-    };
-
-    // --- 隱藏成就：真結局(小問號) 追蹤變數 ---
-    let flag_IntroLateHangup = false;
-    let flag_MusicCycled = false;
-    let flag_CardMaxDrawn = false;
-    let flag_Q15Reported = false;
-    let flag_GlitchSolved = false;
-    let flag_TutorialStickerUsed = false;
-
-    let currentMusicIndex = 0; 
-    let musicSwitchCount = 0;  
-    const musicList =['./music/01.mp3', './music/02.mp3', './music/03.mp3']; 
-
-    let isCardEventDone = false; 
-    let drawCount = 0; 
-    let cardPool =[]; 
-
-    let isGlitchActive = false;
-    let isGlitchDone = false;
-    let closeBtnClickCount = 0;
-    let glitchTimerInterval = null;
-
-    // --- 新增預載邏輯函式 ---
-    async function preloadAssets() {
-        let loadedCount = 0;
-        const totalAssets = videoAssets.length + imageAssets.length;
-        const loadingText = document.getElementById('loading-text');
-
-        function updateProgress() {
-            loadedCount++;
-            const percent = Math.floor((loadedCount / totalAssets) * 100);
-            if(loadingText) loadingText.innerText = `資源載入中... ${percent}%`;
-            
-            if (loadedCount === totalAssets) {
-                if(loadingText) loadingText.style.display = 'none';
-                const startText = document.getElementById('start-text');
-                if(startText) startText.style.display = 'block';
-                
-                // 載入完成，解鎖點擊事件
-                document.getElementById('splash-screen').onclick = startExperience;
-            }
-        }
-
-        imageAssets.forEach(src => {
-            const img = new Image();
-            img.onload = updateProgress;
-            img.onerror = updateProgress; 
-            img.src = src;
-        });
-
-        for (const src of videoAssets) {
-            try {
-                const response = await fetch(src);
-                const blob = await response.blob();
-                preloadedVids[src] = URL.createObjectURL(blob);
-            } catch (e) {
-                console.warn("影片載入失敗，將使用原始路徑回退:", src);
-                preloadedVids[src] = src; 
-            }
-            updateProgress();
-        }
-    }
-
-    window.onload = function() {
-        // 網頁一開就開始跑資料
-        preloadAssets(); 
-
+    // 💡 改用 DOMContentLoaded，網頁一打開就立刻執行，絕不拖延
+    document.addEventListener("DOMContentLoaded", function() {
+        document.getElementById('splash-screen').onclick = null; 
+        
         const introVideo = document.getElementById('intro-video');
         introVideo.style.display = 'none'; 
         document.getElementById('intro-wait-ui').style.display = 'flex';
@@ -1107,12 +1041,67 @@
         callingInterval = setInterval(() => {
             textDiv.innerText = fullText.slice(0, charIndex);
             charIndex++;
-            if (charIndex > fullText.length + 4) { 
-                charIndex = 0;
-            }
+            if (charIndex > fullText.length + 4) { charIndex = 0; }
         }, 200);
-    };
 
+        preloadAssets();
+
+        // 🛡️【無敵保底機制】不管載入有沒有出錯，最長等 6 秒就強制解鎖讓玩家進入！
+        setTimeout(forceStart, 6000);
+    });
+
+    function forceStart() {
+        if (isAppReady) return; // 已經解鎖過了就跳過
+        isAppReady = true;
+        
+        const loadingText = document.getElementById('loading-text');
+        if(loadingText) loadingText.style.display = 'none';
+        
+        const startText = document.getElementById('start-text');
+        if(startText) startText.style.display = 'block';
+        
+        // 載入完成，解鎖點擊事件並顯示通話鈕
+        document.getElementById('splash-screen').onclick = startExperience;
+        document.getElementById('call-btn').style.display = 'flex';
+    }
+
+    async function preloadAssets() {
+        let loadedCount = 0;
+        const totalAssets = videoAssets.length + imageAssets.length;
+        const loadingText = document.getElementById('loading-text');
+
+        function updateProgress() {
+            if (isAppReady) return; // 如果已經保底解鎖了，就不再更新畫面
+            
+            loadedCount++;
+            const percent = Math.floor((loadedCount / totalAssets) * 100);
+            if(loadingText) loadingText.innerText = `資源載入中... ${percent}%`;
+            
+            if (loadedCount >= totalAssets) {
+                forceStart();
+            }
+        }
+
+        imageAssets.forEach(src => {
+            const img = new Image();
+            img.onload = updateProgress;
+            img.onerror = updateProgress; // 就算圖片不小心遺失報錯，也算進度，不准卡死
+            img.src = src;
+        });
+
+        for (const src of videoAssets) {
+            try {
+                const response = await fetch(src);
+                const blob = await response.blob();
+                preloadedVids[src] = URL.createObjectURL(blob);
+            } catch (e) {
+                console.warn("影片預載受阻 (可能是本機測試)，改用即時載入:", src);
+                preloadedVids[src] = src; // 抓不到就用預設的，讓影片播的時候再去抓
+            }
+            updateProgress();
+        }
+    }
+    
     const questionsData =[
         {
             q: "Q1.我們重視每位受試者的體驗環境……需要為你播放一點背景音樂嗎？",
