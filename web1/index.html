@@ -21,25 +21,36 @@
             background-color: #3A3A3A; 
             display: flex;
             justify-content: center;
-            
-            height: 100vh; /* 備用 */
-            height: 100dvh; /* 現代瀏覽器支援 */
-            height: calc(var(--vh, 1vh) * 100); /* JS 強制校正，最高優先級 */
-            
-            overflow: hidden;
+            /* 移除原本鎖死 100vh 的設定，讓 body 可以被內容撐開 */
+            min-height: 100vh;
+            /* 讓舊版手機也能盡量撐滿 */
+            min-height: -webkit-fill-available;
+            /* 允許網頁出現原生滾動條 */
+            overflow-y: auto; 
+            overflow-x: hidden;
         }
 
         /* 模擬手機畫面的容器 */
         #app {
             width: 100%;
             max-width: 450px; 
-            height: 100%;
-            background-color: #3A3A3A; /* 背景底色改為深灰 */
+            
+            /* 💡 核心修改：設定固定的最低高度，確保內容不被壓縮 */
+            /* 這裡設定 800px 是一個常見的舒適手機高度 (大約 9:16 的比例) */
+            /* 如果你覺得內容還是被擠壓，可以把這數字改大 (e.g., 850px) */
+            min-height: 800px;
+            
+            /* 讓 #app 盡量長高去貼齊螢幕，但絕對不能低於 min-height */
+            height: 100vh;
+            height: -webkit-fill-available;
+
+            background-color: #3A3A3A; 
             display: flex;
             flex-direction: column;
             position: relative;
             box-shadow: 0 0 20px rgba(0,0,0,0.5);
-            overflow: hidden;
+            /* 確保 #app 內部的東西不會溢出 */
+            overflow: hidden; 
         }
 
       /* 頂部導覽列改為圖片滿版排列 */
