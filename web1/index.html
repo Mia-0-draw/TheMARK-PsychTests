@@ -17,41 +17,49 @@
             font-family: 'Helvetica Neue', Helvetica, Arial, 'PingFang TC', '微軟正黑體', sans-serif;
         }
 
-        html, body {
-    /* 必須讓 html 也能滾動 */
-    height: auto; 
-    /* 核心：稍微超出 100%，誘發瀏覽器隱藏 Bar 的機制 */
-    min-height: 101vh; 
+        /* 讓最外層具備滾動空間 */
+html {
+    height: -webkit-fill-available;
+}
+
+body {
     background-color: #3A3A3A;
     margin: 0;
     padding: 0;
-    /* 允許垂直滾動 */
-    overflow-y: auto; 
+    display: flex;
+    justify-content: center;
+    /* 核心：高度必須超過 100%，多出來的這 100px 是給 Bar 縮上去用的空間 */
+    min-height: calc(100dvh + 100px); 
+    overflow-y: auto;
     overflow-x: hidden;
-    /* 讓滾動更順滑 */
-    -webkit-overflow-scrolling: touch; 
+    -webkit-overflow-scrolling: touch;
 }
-        
-        
 
-        /* 模擬手機畫面的容器 */
-        #app {
+#app {
     width: 100%;
     max-width: 450px;
-    /* 保持你想要的比例高度 */
+    /* 這裡不要用 100vh，改用 min-height 確保比例 */
     min-height: 800px; 
-    
-    /* 不要用 100vh，改用 100% 讓它跟隨 body */
-    height: 100%; 
-    
+    height: auto; /* 讓它隨內容撐開 */
     background-color: #3A3A3A;
-    display: flex;
-    flex-direction: column;
     position: relative;
-    margin: 0 auto; /* 置中 */
-    
-    /* ⚠️ 重要：移除 overflow: hidden，或者確保它不會攔截全頁滾動 */
-    overflow: visible; 
+    overflow: visible; /* 重要：不要鎖死內部的滾動 */
+}
+
+/* 底部按鈕區改為固定，才不會隨著頁面滾走 */
+#bottom-area {
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    max-width: 450px;
+    z-index: 105;
+    background-color: #B7B7B7;
+}
+
+/* 聊天區塊要留出底部空間，避免被固定住的按鈕擋到 */
+#chat-container {
+    padding-bottom: 200px; 
+    overflow: visible; /* 讓滾動由 body 接手 */
 }
       /* 頂部導覽列改為圖片滿版排列 */
         header {
@@ -1345,7 +1353,7 @@
 
     function startExperience() {
         document.getElementById('splash-screen').style.display = 'none';
-        
+        window.scrollTo(0, 1);
         const ringAudio = document.getElementById('ring-audio');
         if(ringAudio) {
             ringAudio.play().catch(e => console.log('ring播放失敗:', e));
@@ -1364,6 +1372,13 @@
         }
 
         preloadResultImagesInBackground();
+        // 請求全螢幕 (部分 Android Chrome 支援非常完美)
+    const docEl = document.documentElement;
+    if (docEl.requestFullscreen) {
+        docEl.requestFullscreen();
+    } else if (docEl.webkitRequestFullscreen) {
+        docEl.webkitRequestFullscreen();
+    }
     }
 
     function handleCallBtn() {
